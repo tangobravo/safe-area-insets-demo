@@ -1,0 +1,343 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1, user-scalable=no'>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>Safe Area Insets</title>
+    <style>
+      html {
+        margin: 0;
+        background-color: #ff0;
+      }
+
+      body {
+        margin: 0;
+        padding: 56px 8px;
+        min-height: 2000px;
+        box-sizing: border-box;
+        background-color: #f0f0f0;
+        font: 1rem/1.4 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+      }
+
+      /* Let the AR view show through when html is the dom-overlay root */
+      html:xr-overlay body {
+        background-color: transparent;
+      }
+
+      main {
+        position: relative;
+        z-index: 2;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 0.5em;
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 2px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.4em;
+      }
+
+      p {
+        margin: 0.6em 0;
+      }
+
+      table {
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      td, th {
+        padding: 0 0.6em 0 0;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-weight: normal;
+        color: #555;
+      }
+
+      .xr-button, .fs-button {
+        border: rgb(80, 168, 252) 2px solid;
+        border-radius: 2px;
+        height: 55px;
+        min-width: 176px;
+        margin: 4px 4px 0 0;
+        cursor: pointer;
+        font-size: 18px;
+        color: rgb(80, 168, 252);
+        background-color: rgba(255, 255, 255, 0.7);
+      }
+
+      .group {
+        margin-top: 0.8em;
+        padding-top: 0.2em;
+        border-top: 1px solid rgba(0, 0, 0, 0.15);
+      }
+
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+
+      /* Corner squares sitting just inside the safe area */
+      #fixed-tl, #fixed-tr, #fixed-bl, #fixed-br {
+        position: fixed;
+        z-index: 1;
+        width: 40px;
+        height: 40px;
+        box-sizing: border-box;
+        border: 3px solid #8cf;
+        background-color: blue;
+      }
+
+      #fixed-tl, #fixed-tr {
+        top: 0px;
+        margin-top: env(safe-area-inset-top);
+      }
+
+      #fixed-bl, #fixed-br {
+        bottom: 0px;
+        margin-bottom: env(safe-area-inset-bottom);
+      }
+
+      #fixed-tl, #fixed-bl {
+        left: 0px;
+        margin-left: env(safe-area-inset-left);
+      }
+
+      #fixed-tr, #fixed-br {
+        right: 0px;
+        margin-right: env(safe-area-inset-right);
+      }
+
+      /* Hidden elements used to read back env() values in px. Values go in
+         margin with a -1px fallback to detect when they're unsupported */
+      .probe {
+        position: absolute;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      #inset-probe {
+        margin-top: env(safe-area-inset-top, -1px);
+        margin-right: env(safe-area-inset-right, -1px);
+        margin-bottom: env(safe-area-inset-bottom, -1px);
+        margin-left: env(safe-area-inset-left, -1px);
+      }
+
+      #max-inset-probe {
+        margin-top: env(safe-area-max-inset-top, -1px);
+        margin-right: env(safe-area-max-inset-right, -1px);
+        margin-bottom: env(safe-area-max-inset-bottom, -1px);
+        margin-left: env(safe-area-max-inset-left, -1px);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Safe Area Insets</h1>
+      <p>
+        Blue squares are positioned using <code>env(safe-area-inset-*)</code>.
+      </p>
+      <p>
+        meta viewport-fit:
+        <select id="viewport-fit-select">
+          <option selected value="none">unspecified</option>
+          <option value="cover">cover</option>
+          <option value="contain">contain</option>
+        </select>
+      </p>
+      <table>
+        <tr><th></th><th>top</th><th>right</th><th>bottom</th><th>left</th></tr>
+        <tr><th>inset</th><td id="inset-top">-</td><td id="inset-right">-</td><td id="inset-bottom">-</td><td id="inset-left">-</td></tr>
+        <tr><th>max-inset</th><td id="max-inset-top">-</td><td id="max-inset-right">-</td><td id="max-inset-bottom">-</td><td id="max-inset-left">-</td></tr>
+      </table>
+      <p>
+        Visual Viewport: <span id="visual-viewport-span">-</span>
+      </p>
+      <div class="group">
+        <p>
+          fullscreen navigationUI:
+          <select id="navigation-ui-select">
+            <option selected value="show">show</option>
+            <option value="hide">hide</option>
+          </select>
+        </p>
+        <button id="fullscreen-button" class="fs-button">Toggle fullscreen</button>
+      </div>
+      <div class="group">
+        <p>
+          <input type="checkbox" id="require-camera-access" />
+          <label for="require-camera-access">Add camera-access to requiredFeatures</label>
+        </p>
+        <button id="xr-button" class="xr-button" disabled>XR not found</button>
+      </div>
+    </main>
+    <div id="fixed-tl"></div>
+    <div id="fixed-tr"></div>
+    <div id="fixed-bl"></div>
+    <div id="fixed-br"></div>
+    <div id="inset-probe" class="probe"></div>
+    <div id="max-inset-probe" class="probe"></div>
+    <script type="module">
+      const viewportElem = document.querySelector('meta[name="viewport"]');
+      const viewportDefault = viewportElem.content;
+
+      const viewportFitSelect = document.getElementById('viewport-fit-select');
+      const navigationUiSelect = document.getElementById('navigation-ui-select');
+
+      viewportFitSelect.addEventListener('change', () => {
+        if(viewportFitSelect.value == 'none') {
+          viewportElem.content = viewportDefault;
+        } else {
+          viewportElem.content = `${viewportDefault}, viewport-fit=${viewportFitSelect.value}`;
+        }
+      });
+
+      let fullscreenButton = document.getElementById('fullscreen-button');
+      fullscreenButton.addEventListener('click', onFullscreenClicked);
+
+      function onFullscreenClicked() {
+        let options = {navigationUI: navigationUiSelect.value};
+        if(document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen(options);
+        }
+      }
+
+      // Inset readout, mapping each table cell to the probe margin holding
+      // that env() value. Computed styles are live so can be fetched once.
+      const insetValues = ['inset', 'max-inset'].flatMap((prefix) => {
+        const style = getComputedStyle(document.getElementById(`${prefix}-probe`));
+        return ['top', 'right', 'bottom', 'left'].map((side) => ({
+          span: document.getElementById(`${prefix}-${side}`),
+          style,
+          property: `margin-${side}`,
+          text: '',
+        }));
+      });
+
+      const sizeText = (width, height) => {
+        const dpr = window.devicePixelRatio;
+        return `${(width * dpr).toFixed(1)} x ${(height * dpr).toFixed(1)} (${width.toFixed(2)} x ${height.toFixed(2)})`;
+      };
+
+      const visualViewportSpan = document.getElementById('visual-viewport-span');
+      let visualViewportText = '';
+
+      const updateReadout = () => {
+        for(const inset of insetValues) {
+          const px = parseFloat(inset.style.getPropertyValue(inset.property));
+          const text = px < 0 ? 'n/a' : `${px}px`;
+          if(text != inset.text) {
+            console.log(`safe-area-${inset.span.id}: ${text}`);
+            inset.text = text;
+            inset.span.innerText = text;
+          }
+        }
+
+        if(window.visualViewport) {
+          const text = sizeText(window.visualViewport.width, window.visualViewport.height);
+          if(text != visualViewportText) {
+            console.log(`Visual viewport: ${text}`);
+            visualViewportText = text;
+            visualViewportSpan.innerText = text;
+          }
+        }
+      };
+
+      const onWindowFrame = () => {
+        updateReadout();
+        requestAnimationFrame(onWindowFrame);
+      };
+      requestAnimationFrame(onWindowFrame);
+
+      // XR globals.
+      let xrButton = document.getElementById('xr-button');
+      let xrSession = null;
+      let gl = null;
+
+      function checkSupportedState() {
+        navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+          if (supported) {
+            xrButton.innerHTML = 'Enter AR';
+          } else {
+            xrButton.innerHTML = 'AR not found';
+          }
+
+          xrButton.disabled = !supported;
+        });
+      }
+
+      function initXR() {
+        if (navigator.xr) {
+          xrButton.addEventListener('click', onButtonClicked);
+          navigator.xr.addEventListener('devicechange', checkSupportedState);
+          checkSupportedState();
+        }
+      }
+
+      function onButtonClicked() {
+        if (!xrSession) {
+            // Ask for an optional DOM Overlay, see https://immersive-web.github.io/dom-overlays/
+            let sessionOptions = {
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: {root: document.documentElement}
+            };
+
+            // Optionally add camera-access as a requiredFeature
+            if(document.getElementById('require-camera-access').checked) {
+              sessionOptions['requiredFeatures'] = ['camera-access'];
+            }
+
+            navigator.xr.requestSession('immersive-ar', sessionOptions).then(onSessionStarted, onRequestSessionError);
+        } else {
+          xrSession.end();
+        }
+      }
+
+      async function onSessionStarted(session) {
+        xrSession = session;
+        xrButton.innerHTML = 'Exit AR';
+
+        session.addEventListener('end', onSessionEnded);
+
+        let canvas = document.createElement('canvas');
+        gl = canvas.getContext('webgl', {
+          xrCompatible: true
+        });
+        // A baseLayer is still needed for the session to run frames
+        session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+        session.requestAnimationFrame(onXRFrame);
+      }
+
+      function onRequestSessionError(ex) {
+        alert("Failed to start immersive AR session.");
+        console.error(ex.message);
+      }
+
+      function onSessionEnded(event) {
+        xrSession = null;
+        xrButton.innerHTML = 'Enter AR';
+        gl = null;
+      }
+
+      function onXRFrame(t, frame) {
+        // window.requestAnimationFrame may not run during an immersive session
+        updateReadout();
+
+        // Nothing is rendered to the baseLayer framebuffer, so only the
+        // camera feed shows behind the DOM overlay
+        frame.session.requestAnimationFrame(onXRFrame);
+      }
+
+      initXR();
+    </script>
+  </body>
+</html>
