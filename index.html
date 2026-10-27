@@ -115,6 +115,30 @@
         margin-right: env(safe-area-inset-right);
       }
 
+      /* Alternative inset modes, selected by an insets-* class on html */
+      .insets-position #fixed-tl, .insets-position #fixed-tr,
+      .insets-position #fixed-bl, .insets-position #fixed-br,
+      .insets-none #fixed-tl, .insets-none #fixed-tr,
+      .insets-none #fixed-bl, .insets-none #fixed-br {
+        margin: 0;
+      }
+
+      .insets-position #fixed-tl, .insets-position #fixed-tr {
+        top: env(safe-area-inset-top);
+      }
+
+      .insets-position #fixed-bl, .insets-position #fixed-br {
+        bottom: env(safe-area-inset-bottom);
+      }
+
+      .insets-position #fixed-tl, .insets-position #fixed-bl {
+        left: env(safe-area-inset-left);
+      }
+
+      .insets-position #fixed-tr, .insets-position #fixed-br {
+        right: env(safe-area-inset-right);
+      }
+
       /* Hidden elements used to read back env() values in px. Values go in
          margin with a -1px fallback to detect when they're unsupported */
       .probe {
@@ -150,6 +174,14 @@
           <option selected value="none">unspecified</option>
           <option value="cover">cover</option>
           <option value="contain">contain</option>
+        </select>
+      </p>
+      <p>
+        safe-area constraint:
+        <select id="inset-mode-select">
+          <option selected value="margin">margin</option>
+          <option value="position">position</option>
+          <option value="none">none</option>
         </select>
       </p>
       <table>
@@ -196,6 +228,13 @@
           viewportElem.content = viewportDefault;
         } else {
           viewportElem.content = `${viewportDefault}, viewport-fit=${viewportFitSelect.value}`;
+        }
+      });
+
+      const insetModeSelect = document.getElementById('inset-mode-select');
+      insetModeSelect.addEventListener('change', () => {
+        for(const option of insetModeSelect.options) {
+          document.documentElement.classList.toggle(`insets-${option.value}`, option.selected);
         }
       });
 
